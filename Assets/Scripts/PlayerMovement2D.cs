@@ -23,23 +23,45 @@ public class PlayerMovement2D : MonoBehaviour
     [Header("Input")]
     public float inputDeadzone = 0.01f;
 
+    [Header("Physics Material (No Stick)")]
+    [Tooltip("Assign a PhysicsMaterial2D with Friction=0 and Bounciness=0 (e.g., 'NoFriction').")]
+    public PhysicsMaterial2D noFrictionMaterial;
+
+    // ✅ ADDED: interaction lock (set false when reading dialogue)
+    [Header("Interaction Lock")]
+    public bool inputEnabled = true;
+
     private Rigidbody2D rb;
     private Animator anim;
+    private BoxCollider2D boxCol;
 
     private bool facingRight = true;
     private bool turnInProgress = false;
-
     private bool grounded = false;
 
-    // ✅ prevents jump spam: can only jump once until landing
+    // prevents jump spam: can only jump once until landing
     private bool canJump = true;
 
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
+        boxCol = GetComponent<BoxCollider2D>();
 
         rb.freezeRotation = true;
+
+        // Apply no-friction material to the BoxCollider2D to prevent sticking to walls
+        if (boxCol != null && noFrictionMaterial != null)
+        {
+            boxCol.sharedMaterial = noFrictionMaterial;
+        }
+        else
+        {
+            if (boxCol == null)
+                Debug.LogWarning("PlayerMovement2D: No BoxCollider2D found on this GameObject.");
+            if (noFrictionMaterial == null)
+                Debug.LogWarning("PlayerMovement2D: No 'noFrictionMaterial' assigned. Player may stick to walls.");
+        }
 
         anim.SetBool("FacingRight", facingRight);
         anim.SetBool("IsTurning", false);
@@ -51,10 +73,7 @@ public class PlayerMovement2D : MonoBehaviour
 
     void Update()
     {
-        float horizontal = Input.GetAxisRaw("Horizontal");
-        float moveX = Mathf.Abs(horizontal);
-
-        // Grounded check
+        // Always update grounded even if input is locked (so Jump/Fall animations behave)
         grounded = false;
         if (groundCheck != null)
         {
@@ -64,16 +83,27 @@ public class PlayerMovement2D : MonoBehaviour
                 groundLayer
             );
         }
-
         anim.SetBool("Grounded", grounded);
 
-        // ✅ reset jump when we are grounded (landed)
+        // If input is disabled (dialogue etc), stop locomotion params + ignore controls
+        if (!inputEnabled)
+        {
+            anim.SetFloat("MoveX", 0f);
+            anim.SetBool("IsRunning", false);
+            anim.SetBool("IsFalling", !grounded && rb.velocity.y < -0.1f);
+            return;
+        }
+
+        float horizontal = Input.GetAxisRaw("Horizontal");
+        float moveX = Mathf.Abs(horizontal);
+
+        // reset jump when we are grounded (landed)
         if (grounded)
         {
             canJump = true;
         }
 
-        // ✅ SPACE = JUMP (once per landing)
+        // SPACE = JUMP (once per landing)
         if (grounded && canJump && Input.GetKeyDown(KeyCode.Space))
         {
             DoJump();
@@ -102,6 +132,13 @@ public class PlayerMovement2D : MonoBehaviour
 
     void FixedUpdate()
     {
+        // If input is locked, don't accept movement input. Stop horizontal movement.
+        if (!inputEnabled)
+        {
+            rb.velocity = new Vector2(0f, rb.velocity.y);
+            return;
+        }
+
         float horizontal = Input.GetAxisRaw("Horizontal");
         float moveX = Mathf.Abs(horizontal);
 
