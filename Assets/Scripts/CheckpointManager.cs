@@ -2,9 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
+
 /// Stores and manages the player's current respawn point.
-/// </summary>
+
 public class CheckpointManager : MonoBehaviour
 {
     public static CheckpointManager Instance;
