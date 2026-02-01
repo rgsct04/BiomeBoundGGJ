@@ -9,7 +9,11 @@ public class InteractableTrigger : MonoBehaviour
     public GameObject promptObject;
 
     [Header("Dialogue (Two Lines)")]
-    [TextArea(1, 2)] public string message1 = "Find the pieces, rebuild whats broken... release the spirits, escape the biomes.";
+    [TextArea(1, 2)] public string message1 = "Find the pieces." +
+
+        "rebuild whats broken... release the spirits." +
+
+        "escape the biomes.";
     [TextArea(2, 6)] public string message2 = "Press e to continue...";
 
     private bool playerInRange;
